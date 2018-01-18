@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "347416487591",
+    "firebase_url": "https://mapboxapp-1b2e2.firebaseio.com",
+    "project_id": "mapboxapp-1b2e2",
+    "storage_bucket": "mapboxapp-1b2e2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347416487591:android:241edf60e42d7441",
+        "android_client_info": {
+          "package_name": "pl.devone.android.mapboxexampleapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "347416487591-b8qk6r709i4dn19gsvpoi190467u3dhg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "pl.devone.android.mapboxexampleapp",
+            "certificate_hash": "1c8a901516c57a41048717dbb66bdf4708c0ecf1"
+          }
+        },
+        {
+          "client_id": "347416487591-07ftb7k04v72c32o3vm97gq5fn8mfaig.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi8-uahlE01y6NggMp-LESvz2z5Jh-XYU"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "347416487591-07ftb7k04v72c32o3vm97gq5fn8mfaig.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

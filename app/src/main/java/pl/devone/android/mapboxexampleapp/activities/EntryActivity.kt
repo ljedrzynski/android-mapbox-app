@@ -1,5 +1,6 @@
 package pl.devone.android.mapboxexampleapp.activities
 
+import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.design.widget.NavigationView
@@ -11,13 +12,23 @@ import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_entry.*
 import kotlinx.android.synthetic.main.app_bar_entry.*
 import pl.devone.android.mapboxexampleapp.R
+import pl.devone.android.mapboxexampleapp.services.AuthService
+
 
 class EntryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_entry)
         setSupportActionBar(toolbar)
+
+        if (!AuthService.isLoggedIn()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
 
         fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)

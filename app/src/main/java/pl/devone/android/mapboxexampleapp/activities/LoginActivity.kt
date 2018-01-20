@@ -21,11 +21,13 @@ import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
 import android.widget.TextView
 
-import java.util.ArrayList
 import android.Manifest.permission.READ_CONTACTS
+import android.annotation.SuppressLint
+import com.firebase.ui.auth.AuthUI
 
 import kotlinx.android.synthetic.main.activity_login.*
 import pl.devone.android.mapboxexampleapp.R
+import java.util.*
 
 /**
  * A login screen that offers login via email/password.
@@ -35,6 +37,7 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private var mAuthTask: UserLoginTask? = null
+    private val RC_SIGN_IN = 123
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +52,8 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
             false
         })
 
-        email_sign_in_button.setOnClickListener { attemptLogin() }
+        sign_in_button.setOnClickListener { attemptLogin() }
+        sign_up_button.setOnClickListener { signUp() }
     }
 
     private fun populateAutoComplete() {
@@ -89,12 +93,21 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
         }
     }
 
+    private fun signUp() {
+        val providers = Arrays.asList(
+                AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
+        AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build())
 
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
+        startActivityForResult(
+                AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setAvailableProviders(providers)
+                        .build(),
+                RC_SIGN_IN)
+    }
+
+
+
     private fun attemptLogin() {
         if (mAuthTask != null) {
             return
@@ -155,6 +168,7 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
     /**
      * Shows the progress UI and hides the login form.
      */
+    @SuppressLint("ObsoleteSdkInt")
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private fun showProgress(show: Boolean) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow

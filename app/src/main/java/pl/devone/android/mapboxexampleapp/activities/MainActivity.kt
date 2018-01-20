@@ -1,6 +1,6 @@
 package pl.devone.android.mapboxexampleapp.activities
 
-import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.design.widget.NavigationView
@@ -9,26 +9,19 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-import kotlinx.android.synthetic.main.activity_entry.*
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_entry.*
 import pl.devone.android.mapboxexampleapp.R
-import pl.devone.android.mapboxexampleapp.services.AuthService
+import pl.devone.android.mapboxexampleapp.activities.utils.ActivityUtils
+import pl.devone.android.mapboxexampleapp.fragments.MapFragment
 
-
-class EntryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
-
-
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, MapFragment.OnMapFragmentInteractionListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_entry)
+        setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        if (!AuthService.isLoggedIn()) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-            return
-        }
 
         fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
@@ -41,6 +34,7 @@ class EntryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelect
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
+        ActivityUtils.setFragment(this.fragmentManager, MapFragment::class.java)
     }
 
     override fun onBackPressed() {
@@ -58,20 +52,18 @@ class EntryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelect
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+
         when (item.itemId) {
             R.id.action_settings -> return true
             else -> return super.onOptionsItemSelected(item)
         }
     }
 
+
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
+
         when (item.itemId) {
             R.id.nav_camera -> {
-                // Handle the camera action
             }
             R.id.nav_gallery -> {
 
@@ -92,5 +84,9 @@ class EntryActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelect
 
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    override fun onFragmentInteraction(uri: Uri) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

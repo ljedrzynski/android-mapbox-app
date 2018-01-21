@@ -1,19 +1,19 @@
 package pl.devone.android.mapboxexampleapp.fragments
 
 import android.annotation.SuppressLint
-import android.content.Context
+import android.app.AlertDialog
 import android.net.Uri
 import android.os.Bundle
 import android.app.Fragment
-import android.content.ComponentName
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.location.Location
 import android.os.IBinder
+import android.support.design.widget.FloatingActionButton
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.firebase.ui.auth.ui.phone.CountryListSpinner
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -49,17 +49,11 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
                 registerListener(this@MapFragment)
                 mLastLocation = getLastLocation()
             }
-
-            mMapView!!.getMapAsync({ mapboxMap ->
-                mMap = mapboxMap
+            mMapView!!.getMapAsync({ map ->
+                mMap = map
                 enableLocationPlugin()
             })
         }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        init()
     }
 
     private fun init() {
@@ -70,27 +64,22 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
                 if (PermissionsManager.areLocationPermissionsGranted(context)) Context.BIND_AUTO_CREATE else 0)
     }
 
-    @SuppressLint("MissingPermission")
-    private fun enableLocationPlugin() {
-        if (PermissionsManager.areLocationPermissionsGranted(this.context)) {
-            mLocationPlugin = LocationLayerPlugin(mMapView!!, mMap!!, mLocationProvider!!.getLocationEngine())
-            mLocationPlugin!!.setLocationLayerEnabled(LocationLayerMode.TRACKING)
-        } else {
-            mPermissionsManager = PermissionsManager(this)
-            mPermissionsManager!!.requestLocationPermissions(this.activity)
-        }
-    }
-
-    private fun setCameraPosition(location: Location) {
-        mMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                LatLng(location.latitude, location.longitude), 13.0))
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        init()
     }
 
     override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         return inflater?.inflate(R.layout.fragment_map, container, false).apply {
-            mMapView = this!!.findViewById(R.id.map_view)
-            mMapView!!.onCreate(savedInstanceState)
+            if (this != null) {
+                mMapView = this.findViewById(R.id.map_view)
+                mMapView!!.onCreate(savedInstanceState)
+
+                var button: FloatingActionButton = this.findViewById(R.id.fab_add_location)
+                button.setOnClickListener { getAddLocationDialog().show() }
+            }
+
         }
     }
 
@@ -110,8 +99,28 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
         }
     }
 
+    private fun getAddLocationDialog(): AlertDialog = AlertDialog.Builder(activity)
+            .apply { this.setView(activity.layoutInflater.inflate(R.layout.add_location_popup, null)) }
+            .create()
+
+    @SuppressLint("MissingPermission")
+    private fun enableLocationPlugin() {
+        if (PermissionsManager.areLocationPermissionsGranted(this.context)) {
+            mLocationPlugin = LocationLayerPlugin(mMapView!!, mMap!!, mLocationProvider!!.getLocationEngine())
+            mLocationPlugin!!.setLocationLayerEnabled(LocationLayerMode.TRACKING)
+        } else {
+            mPermissionsManager = PermissionsManager(this)
+            mPermissionsManager!!.requestLocationPermissions(this.activity)
+        }
+    }
+
+    private fun setCameraPosition(location: Location) {
+        mMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                LatLng(location.latitude, location.longitude), 13.0))
+    }
+
+
     override fun onLocationChanged(location: Location) {
-        Log.d(TAG, String.format("New location -> %s", location.toString()))
         setCameraPosition(location)
     }
 

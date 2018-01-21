@@ -24,5 +24,8 @@
     <string name="title_location_permission">Location Access</string>
     <string name="info_location_permission">This application requires access to location</string>
 
+    <string name="name">Name</string>
+    <string name="description">Description</string>
+    <string name="radius">Radius</string>
 
 </resources>

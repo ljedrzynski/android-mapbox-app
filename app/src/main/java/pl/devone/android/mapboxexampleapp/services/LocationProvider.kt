@@ -30,11 +30,9 @@ class LocationProvider : Service(), LocationEngineListener {
     @SuppressLint("MissingPermission")
     override fun onCreate() {
         super.onCreate()
-
         if (!PermissionsManager.areLocationPermissionsGranted(applicationContext)) {
             stopSelf()
         }
-
         locationEngine = LostLocationEngine(this).apply {
             priority = LocationEnginePriority.HIGH_ACCURACY
             activate()
@@ -46,6 +44,14 @@ class LocationProvider : Service(), LocationEngineListener {
             originLocation = lastLocation
         } else {
             locationEngine.addLocationEngineListener(this)
+        }
+    }
+
+    override fun onBind(intent: Intent): IBinder? = LocationBinder()
+
+    fun registerListener(locationServiceListener: LocationServiceListener) {
+        if (!mLocationServiceListeners.contains(locationServiceListener)) {
+            mLocationServiceListeners.add(locationServiceListener)
         }
     }
 
@@ -61,17 +67,9 @@ class LocationProvider : Service(), LocationEngineListener {
         }
     }
 
-    override fun onBind(intent: Intent): IBinder? = LocationBinder()
-
     override fun onDestroy() {
         super.onDestroy()
         locationEngine.deactivate()
-    }
-
-    fun registerListener(locationServiceListener: LocationServiceListener) {
-        if (!mLocationServiceListeners.contains(locationServiceListener)) {
-            mLocationServiceListeners.add(locationServiceListener)
-        }
     }
 
     fun getLastLocation(): Location? = originLocation
@@ -81,5 +79,4 @@ class LocationProvider : Service(), LocationEngineListener {
     interface LocationServiceListener {
         fun onLocationChanged(location: Location)
     }
-
 }

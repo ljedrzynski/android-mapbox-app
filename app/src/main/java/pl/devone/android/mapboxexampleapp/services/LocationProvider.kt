@@ -36,7 +36,7 @@ class LocationProvider : Service(), LocationEngineListener {
         }
 
         locationEngine = LostLocationEngine(this).apply {
-            setPriority(LocationEnginePriority.HIGH_ACCURACY)
+            priority = LocationEnginePriority.HIGH_ACCURACY
             activate()
             requestLocationUpdates()
         }
@@ -65,9 +65,8 @@ class LocationProvider : Service(), LocationEngineListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        locationEngine.removeLocationUpdates()
+        locationEngine.deactivate()
     }
-
 
     fun registerListener(locationServiceListener: LocationServiceListener) {
         if (!mLocationServiceListeners.contains(locationServiceListener)) {

@@ -21,7 +21,6 @@ import com.mapbox.mapboxsdk.geometry.LatLng
 import pl.devone.android.mapboxexampleapp.R
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
-import pl.devone.android.mapboxexampleapp.services.CameraManager
 import pl.devone.ipark.services.location.LocationProvider
 import com.mapbox.services.android.telemetry.permissions.PermissionsManager
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerMode
@@ -53,12 +52,17 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
 
             mMapView!!.getMapAsync({ mapboxMap ->
                 mMap = mapboxMap
+                enableLocationPlugin()
             })
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        init()
+    }
+
+    private fun init() {
         Mapbox.getInstance(context, resources.getString(R.string.mapbox_token))
         Log.i(TAG, "Initialization -> binding LocationProvider")
         context.bindService(Intent(context, LocationProvider::class.java),
@@ -106,14 +110,6 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
         }
     }
 
-    override fun onDetach() {
-        super.onDetach()
-        mMap = null
-        mLocationProvider = null
-        mMapView = null
-        mListenerMap = null
-    }
-
     override fun onLocationChanged(location: Location) {
         Log.d(TAG, String.format("New location -> %s", location.toString()))
         setCameraPosition(location)
@@ -134,12 +130,17 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
         mMapView?.onLowMemory()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        mLocationProvider?.onDestroy()
+        mMapView?.onDestroy()
+    }
 
     override fun onPermissionResult(granted: Boolean) {
         if (granted) {
             enableLocationPlugin()
         } else {
-            mPermissionsManager!!.requestLocationPermissions(this.activity)
+            this.activity.finish()
         }
     }
 

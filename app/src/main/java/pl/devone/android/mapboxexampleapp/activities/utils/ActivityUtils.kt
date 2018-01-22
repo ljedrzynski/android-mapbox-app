@@ -7,20 +7,15 @@ import pl.devone.android.mapboxexampleapp.R
 /**
  * Created by ljedrzynski on 20.01.2018.
  */
-class ActivityUtils {
+object ActivityUtils {
 
-    companion object {
-        fun setFragment(manager: FragmentManager, cls: Class<*>): Fragment {
-            val fragment: Fragment
-            try {
-                fragment = cls.getConstructor().newInstance() as Fragment
-            } catch (exc: Exception) {
-                throw RuntimeException("Kurwa blad!")
-            }
+    fun setFragment(manager: FragmentManager, cls: Class<out Fragment>): Fragment {
+        return (cls.getConstructor().newInstance() as Fragment).apply {
             manager.beginTransaction()
-                    .replace(R.id.container, fragment)
+                    .replace(R.id.container, this)
                     .commit()
-            return fragment
         }
     }
+
+
 }

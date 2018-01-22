@@ -13,10 +13,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.firebase.ui.auth.ui.phone.CountryListSpinner
+import android.widget.EditText
+import android.widget.NumberPicker
 import com.mapbox.mapboxsdk.Mapbox
+import com.mapbox.mapboxsdk.annotations.MarkerOptions
+import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
+import com.mapbox.mapboxsdk.geometry.LatLngBounds
 
 import pl.devone.android.mapboxexampleapp.R
 import com.mapbox.mapboxsdk.maps.MapView
@@ -26,7 +30,7 @@ import com.mapbox.services.android.telemetry.permissions.PermissionsManager
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin
 import com.mapbox.services.android.telemetry.permissions.PermissionsListener
-
+import pl.devone.android.mapboxexampleapp.models.PastLocation
 
 class MapFragment : Fragment(), LocationProvider.LocationServiceListener, PermissionsListener {
     private val TAG = MapFragment::class.java.canonicalName
@@ -38,6 +42,7 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
     private var mPermissionsManager: PermissionsManager? = null
     private var mListenerMap: OnMapFragmentInteractionListener? = null
     private var mLastLocation: Location? = null
+    private val mPastLocations: ArrayList<PastLocation> = ArrayList()
 
     private var locationServiceConnection = object : ServiceConnection {
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -76,8 +81,8 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
                 mMapView = this.findViewById(R.id.map_view)
                 mMapView!!.onCreate(savedInstanceState)
 
-                var button: FloatingActionButton = this.findViewById(R.id.fab_add_location)
-                button.setOnClickListener { getAddLocationDialog().show() }
+                val button: FloatingActionButton = this.findViewById(R.id.fab_add_location)
+                button.setOnClickListener { createAddLocationDialog().show() }
             }
 
         }
@@ -99,9 +104,31 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
         }
     }
 
-    private fun getAddLocationDialog(): AlertDialog = AlertDialog.Builder(activity)
-            .apply { this.setView(activity.layoutInflater.inflate(R.layout.add_location_popup, null)) }
-            .create()
+    @SuppressLint("InflateParams")
+    private fun createAddLocationDialog(): AlertDialog {
+        return AlertDialog.Builder(activity).apply {
+            val view = activity.layoutInflater.inflate(R.layout.add_location_dialog, null)
+            val etName = view.findViewById<EditText>(R.id.et_name)
+            val etDescription= view.findViewById<EditText>(R.id.et_description)
+            val npRadius = view.findViewById<NumberPicker>(R.id.np_radius)
+            npRadius.minValue = 1
+            npRadius.maxValue = 20
+            setTitle(getString(R.string.add_new_location))
+            setPositiveButton(getString(R.string.add)) { dialog, _ ->
+                addLocation(PastLocation(mLastLocation!!, etName.text.toString(), etDescription.text.toString(), npRadius.value))
+                cameraIncludePositions(mMap, 300, 1000, mPastLocations)
+                dialog?.dismiss()
+            }
+            setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog?.dismiss() }
+            setView(view)
+        }.create()
+    }
+
+    private fun addLocation(location: PastLocation){
+        mMap!!.addMarker(MarkerOptions().position(location))
+        mPastLocations.add(location)
+        setCameraPosition(location.location)
+    }
 
     @SuppressLint("MissingPermission")
     private fun enableLocationPlugin() {
@@ -119,9 +146,38 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
                 LatLng(location.latitude, location.longitude), 13.0))
     }
 
+    private fun easeCamera(map: MapboxMap, latLng: LatLng, zoom: Double, bearing: Double, tilt: Double, duration: Int) {
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(
+                CameraPosition.Builder()
+                        .target(latLng)
+                        .zoom(zoom)
+                        .bearing(bearing)
+                        .tilt(tilt)
+                        .build()), duration)
+    }
+
+
+    fun cameraIncludePositions(mapboxMap: MapboxMap?, padding: Int, duration: Int, positions: List<LatLng>?) {
+        if (positions == null) {
+            throw RuntimeException("Positions cannot be null! Fatal error!")
+        }
+        if (mapboxMap == null) {
+            throw RuntimeException("MapBoxMap cannot be null. Fatal error!")
+        }
+        if (positions.size == 1) {
+            easeCamera(mapboxMap, positions.iterator().next(), 16.0, mapboxMap.cameraPosition.bearing, 45.0, 1000)
+            return
+        }
+        LatLngBounds.Builder().apply {
+            positions.forEach{ position -> this.include(position)}
+            mapboxMap.easeCamera(CameraUpdateFactory.newLatLngBounds(this.build(), padding), duration)
+        }
+    }
+
 
     override fun onLocationChanged(location: Location) {
         setCameraPosition(location)
+        mLastLocation = location
     }
 
     override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {

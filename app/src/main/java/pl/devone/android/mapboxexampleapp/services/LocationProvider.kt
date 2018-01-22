@@ -61,9 +61,7 @@ class LocationProvider : Service(), LocationEngineListener {
     override fun onLocationChanged(location: Location?) {
         if (location != null) {
             originLocation = location
-            for (mLocationServiceListener in mLocationServiceListeners) {
-                mLocationServiceListener.onLocationChanged(location)
-            }
+            mLocationServiceListeners.forEach { listener -> listener.onLocationChanged(location) }
         }
     }
 

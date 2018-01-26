@@ -1,4 +1,4 @@
-package pl.devone.ipark.services.location
+package pl.devone.android.mapboxexampleapp.services
 
 import android.annotation.SuppressLint
 import android.app.Service
@@ -17,14 +17,14 @@ import com.mapbox.services.android.telemetry.permissions.PermissionsManager
  * Created by ljedrzynski on 02.06.2017.
  */
 
-class LocationProvider : Service(), LocationEngineListener {
+class LocationService : Service(), LocationEngineListener {
 
-    private lateinit var locationEngine: LocationEngine
-    private var originLocation: Location? = null
+    private lateinit var mLocationEngine: LocationEngine
+    private var mOriginLocation: Location? = null
     private val mLocationServiceListeners = ArrayList<LocationServiceListener>()
 
     inner class LocationBinder : Binder() {
-        fun getService(): LocationProvider = this@LocationProvider
+        fun getService(): LocationService = this@LocationService
     }
 
     @SuppressLint("MissingPermission")
@@ -33,17 +33,17 @@ class LocationProvider : Service(), LocationEngineListener {
         if (!PermissionsManager.areLocationPermissionsGranted(applicationContext)) {
             stopSelf()
         }
-        locationEngine = LostLocationEngine(this).apply {
+        mLocationEngine = LostLocationEngine(this).apply {
             priority = LocationEnginePriority.HIGH_ACCURACY
             activate()
             requestLocationUpdates()
         }
 
-        val lastLocation = locationEngine.lastLocation
+        val lastLocation = mLocationEngine.lastLocation
         if (lastLocation != null) {
-            originLocation = lastLocation
+            mOriginLocation = lastLocation
         } else {
-            locationEngine.addLocationEngineListener(this)
+            mLocationEngine.addLocationEngineListener(this)
         }
     }
 
@@ -56,23 +56,23 @@ class LocationProvider : Service(), LocationEngineListener {
     }
 
     @SuppressLint("MissingPermission")
-    override fun onConnected() = locationEngine.requestLocationUpdates()
+    override fun onConnected() = mLocationEngine.requestLocationUpdates()
 
     override fun onLocationChanged(location: Location?) {
         if (location != null) {
-            originLocation = location
+            mOriginLocation = location
             mLocationServiceListeners.forEach { listener -> listener.onLocationChanged(location) }
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        locationEngine.deactivate()
+        mLocationEngine.deactivate()
     }
 
-    fun getLastLocation(): Location? = originLocation
+    fun getLastLocation(): Location? = mOriginLocation
 
-    fun getLocationEngine(): LocationEngine? = locationEngine
+    fun getLocationEngine(): LocationEngine? = mLocationEngine
 
     interface LocationServiceListener {
         fun onLocationChanged(location: Location)

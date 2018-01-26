@@ -2,6 +2,8 @@ package pl.devone.android.mapboxexampleapp.activities.utils
 
 import android.app.Fragment
 import android.app.FragmentManager
+import android.content.Context
+import android.net.ConnectivityManager
 import pl.devone.android.mapboxexampleapp.R
 
 /**
@@ -15,6 +17,12 @@ object ActivityUtils {
                     .replace(R.id.container, this)
                     .commit()
         }
+    }
+
+    fun isOnline(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnectedOrConnecting
     }
 
 

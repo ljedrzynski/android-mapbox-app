@@ -9,7 +9,6 @@ import android.content.*
 import android.location.Location
 import android.os.IBinder
 import android.support.design.widget.FloatingActionButton
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,20 +23,21 @@ import com.mapbox.mapboxsdk.geometry.LatLngBounds
 import pl.devone.android.mapboxexampleapp.R
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
-import pl.devone.ipark.services.location.LocationProvider
 import com.mapbox.services.android.telemetry.permissions.PermissionsManager
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerMode
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin
 import com.mapbox.services.android.telemetry.permissions.PermissionsListener
 import pl.devone.android.mapboxexampleapp.models.PastLocation
+import pl.devone.android.mapboxexampleapp.services.GeofenceService
+import pl.devone.android.mapboxexampleapp.services.LocationService
 import kotlin.collections.ArrayList
 
-class MapFragment : Fragment(), LocationProvider.LocationServiceListener, PermissionsListener {
+class MapFragment : Fragment(), LocationService.LocationServiceListener, PermissionsListener {
     private val TAG = MapFragment::class.java.canonicalName
-
     private var mMap: MapboxMap? = null
     private var mMapView: MapView? = null
-    private var mLocationProvider: LocationProvider? = null
+    private var mLocationService: LocationService? = null
+    private var mGeofenceService: GeofenceService? = null
     private var mLocationPlugin: LocationLayerPlugin? = null
     private var mPermissionsManager: PermissionsManager? = null
     private var mListenerMap: OnMapFragmentInteractionListener? = null
@@ -46,28 +46,45 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
 
     private var locationServiceConnection = object : ServiceConnection {
         override fun onServiceDisconnected(name: ComponentName?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
         override fun onServiceConnected(name: ComponentName?, service: IBinder) {
-            mLocationProvider = (service as LocationProvider.LocationBinder).getService().apply {
-                registerListener(this@MapFragment)
+            mLocationService = (service as LocationService.LocationBinder).getService().apply {
                 mLastLocation = getLastLocation()
+                mMapView!!.getMapAsync({ map ->
+                    mMap = map
+                    mMap!!.addOnMapClickListener { cameraIncludeAll(300, 1000) }
+                    enableLocationPlugin()
+                })
+                registerListener(this@MapFragment)
             }
-            mMapView!!.getMapAsync({ map ->
-                mMap = map
-                mMap!!.addOnMapClickListener { cameraIncludeAll(300, 1000 ) }
-                enableLocationPlugin()
-            })
+
+        }
+    }
+
+    private var geofenceServiceConnection = object : ServiceConnection {
+        override fun onServiceDisconnected(name: ComponentName?) {
+        }
+
+        override fun onServiceConnected(name: ComponentName?, service: IBinder) {
+            mGeofenceService = (service as GeofenceService.GeofenceBinder).getService().apply {
+                if (mPastLocations.size > 0) {
+                    createGeofences(mPastLocations)
+                }
+            }
         }
     }
 
     private fun init() {
         Mapbox.getInstance(context, resources.getString(R.string.mapbox_token))
-        Log.i(TAG, "Initialization -> binding LocationProvider")
-        context.bindService(Intent(context, LocationProvider::class.java),
-                locationServiceConnection,
-                if (PermissionsManager.areLocationPermissionsGranted(context)) Context.BIND_AUTO_CREATE else 0)
+        if (PermissionsManager.areLocationPermissionsGranted(this.context)) {
+            context.apply {
+                bindService(Intent(context, LocationService::class.java), locationServiceConnection, Context.BIND_AUTO_CREATE)
+                bindService(Intent(context, GeofenceService::class.java), geofenceServiceConnection, Context.BIND_AUTO_CREATE)
+            }
+        } else {
+            mPermissionsManager = PermissionsManager(this).apply { requestLocationPermissions(this@MapFragment.activity) }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +99,7 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
                 mMapView = this.findViewById(R.id.map_view)
                 mMapView!!.onCreate(savedInstanceState)
                 val button: FloatingActionButton = this.findViewById(R.id.fab_add_location)
-                button.setOnClickListener { createAddLocationDialog().show() }
+                button.setOnClickListener { buildAddLocationDialog().show() }
             }
 
         }
@@ -105,7 +122,7 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
     }
 
     @SuppressLint("InflateParams")
-    private fun createAddLocationDialog(): AlertDialog {
+    private fun buildAddLocationDialog(): AlertDialog {
         return AlertDialog.Builder(activity).apply {
             val view = activity.layoutInflater.inflate(R.layout.add_location_dialog, null)
             val etName = view.findViewById<EditText>(R.id.et_name)
@@ -115,7 +132,7 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
             npRadius.maxValue = 20
             setTitle(getString(R.string.add_new_location))
             setPositiveButton(getString(R.string.add)) { dialog, _ ->
-                addLocation(PastLocation(mLastLocation!!, etName.text.toString(), etDescription.text.toString(), npRadius.value))
+                addLocation(PastLocation(mLastLocation!!, etName.text.toString(), etDescription.text.toString(), npRadius.value.toFloat()))
                 cameraIncludeAll(300, 1000)
                 dialog?.dismiss()
             }
@@ -125,22 +142,17 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
     }
 
     private fun addLocation(location: PastLocation) {
-        mMap?.addMarker(MarkerOptions().position(location)
+        mMap!!.addMarker(MarkerOptions().position(location)
                 .title(location.name)
                 .snippet(String.format("%s (%s)", location.description, location.radius)))
+        mGeofenceService!!.createGeofence(location)
         mPastLocations.add(location)
-        setCameraPosition(location.location)
     }
 
     @SuppressLint("MissingPermission")
     private fun enableLocationPlugin() {
-        if (PermissionsManager.areLocationPermissionsGranted(this.context)) {
-            mLocationPlugin = LocationLayerPlugin(mMapView!!, mMap!!, mLocationProvider!!.getLocationEngine())
-            mLocationPlugin!!.setLocationLayerEnabled(LocationLayerMode.TRACKING)
-        } else {
-            mPermissionsManager = PermissionsManager(this)
-            mPermissionsManager!!.requestLocationPermissions(this.activity)
-        }
+        mLocationPlugin = LocationLayerPlugin(mMapView!!, mMap!!, mLocationService!!.getLocationEngine())
+        mLocationPlugin!!.setLocationLayerEnabled(LocationLayerMode.TRACKING)
     }
 
     private fun setCameraPosition(location: Location) {
@@ -149,10 +161,16 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
     }
 
     private fun cameraIncludeAll(padding: Int, duration: Int) {
-        LatLngBounds.Builder().apply {
-            mPastLocations.forEach { position -> this.include(position) }
-            this.include(LatLng(mLastLocation!!.latitude, mLastLocation!!.longitude))
-            mMap!!.easeCamera(CameraUpdateFactory.newLatLngBounds(this.build(), padding), duration)
+        if(mMap != null) {
+            if (mPastLocations.size == 0) {
+                setCameraPosition(mLastLocation!!)
+            } else {
+                LatLngBounds.Builder().apply {
+                    this.include(LatLng(mLastLocation!!.latitude, mLastLocation!!.longitude))
+                    mPastLocations.forEach { position -> this.include(position) }
+                    mMap!!.easeCamera(CameraUpdateFactory.newLatLngBounds(this.build(), padding), duration)
+                }
+            }
         }
     }
 
@@ -162,7 +180,6 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
     }
 
     override fun onExplanationNeeded(permissionsToExplain: MutableList<String>?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun onStop() {
@@ -178,13 +195,13 @@ class MapFragment : Fragment(), LocationProvider.LocationServiceListener, Permis
 
     override fun onDestroy() {
         super.onDestroy()
-        mLocationProvider?.onDestroy()
+        mLocationService?.onDestroy()
         mMapView?.onDestroy()
     }
 
     override fun onPermissionResult(granted: Boolean) {
         if (granted) {
-            enableLocationPlugin()
+            init()
         } else {
             this.activity.finish()
         }

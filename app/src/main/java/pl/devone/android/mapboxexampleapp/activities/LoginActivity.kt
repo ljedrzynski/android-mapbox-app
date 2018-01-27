@@ -23,7 +23,6 @@ import android.widget.TextView
 
 import android.Manifest.permission.READ_CONTACTS
 import android.annotation.SuppressLint
-import com.firebase.ui.auth.AuthUI
 
 import kotlinx.android.synthetic.main.activity_login.*
 import pl.devone.android.mapboxexampleapp.R
@@ -53,7 +52,7 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
         })
 
         sign_in_button.setOnClickListener { attemptLogin() }
-        sign_up_button.setOnClickListener { signUp() }
+//        sign_up_button.setOnClickListener { signUp() }
     }
 
     private fun populateAutoComplete() {
@@ -92,20 +91,6 @@ class LoginActivity : AppCompatActivity(), LoaderCallbacks<Cursor> {
             }
         }
     }
-
-    private fun signUp() {
-        val providers = Arrays.asList(
-                AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-        AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build())
-
-        startActivityForResult(
-                AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(providers)
-                        .build(),
-                RC_SIGN_IN)
-    }
-
 
 
     private fun attemptLogin() {

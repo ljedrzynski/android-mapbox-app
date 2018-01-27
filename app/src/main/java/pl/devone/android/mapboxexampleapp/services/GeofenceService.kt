@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Bundle
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
-import com.mapbox.mapboxsdk.geometry.LatLng
 import android.app.PendingIntent
 import android.os.Binder
 import android.util.Log
@@ -14,6 +13,7 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
+import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.services.android.telemetry.permissions.PermissionsManager
 import pl.devone.android.mapboxexampleapp.models.PastLocation
 import java.util.stream.Collectors
@@ -26,6 +26,7 @@ class GeofenceService : Service(), GoogleApiClient.ConnectionCallbacks, GoogleAp
     private val TAG: String = GeofenceService::class.java.canonicalName
     private var mGeofencePendingIntent: PendingIntent? = null
     private var mGeofencingClient: GeofencingClient? = null
+    private val GEOFENCE_REQ_ID = String.format("gf_%s", System.currentTimeMillis() % 1000)
 
     inner class GeofenceBinder : Binder() {
         fun getService(): GeofenceService = this@GeofenceService
@@ -51,17 +52,17 @@ class GeofenceService : Service(), GoogleApiClient.ConnectionCallbacks, GoogleAp
 
     fun createGeofences(locations: List<PastLocation>) =
             addGeofences(buildGeofenceRequest(locations.stream()
-                    .map { t -> buildGeofence(t, t.radius) }
+                    .map { t -> buildGeofence(t) }
                     .collect(Collectors.toList()) as List<Geofence>))
 
     fun createGeofence(location: PastLocation) =
-            addGeofences(buildGeofenceRequest(buildGeofence(location, location.radius)))
+            addGeofences(buildGeofenceRequest(buildGeofence(location)))
 
 
-    private fun buildGeofence(latLng: LatLng, radius: Float): Geofence =
+    private fun buildGeofence(location: PastLocation): Geofence =
             Geofence.Builder()
-                    .setRequestId("gfence")
-                    .setCircularRegion(latLng.latitude, latLng.longitude, radius * 1000)
+                    .setRequestId(location.name)
+                    .setCircularRegion(location.latitude, location.longitude, location.radius!! * 1000)
                     .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
                     .setExpirationDuration(Geofence.NEVER_EXPIRE)
                     .build()

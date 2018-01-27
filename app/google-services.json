@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "347416487591-alrvvbr57blv2bh4am9ilsqm37gl4ago.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "pl.devone.android.mapboxexampleapp",
+            "certificate_hash": "647d6c726951e282547061dab274ee690fc4d146"
+          }
+        },
+        {
           "client_id": "347416487591-b8qk6r709i4dn19gsvpoi190467u3dhg.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
